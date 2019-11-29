@@ -1,0 +1,121 @@
+---
+title: "Le SPOL mangeoire du MNHN"
+author: "Romain Lorrilliere"
+date: "07/11/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# rmarkdown::render("bilan_spol_mangeoire.rmd",output_file="output/spol_mangeoire")
+```
+# Les packages
+
+```{r , eval=TRUE, echo=TRUE}
+library(data.table)
+library(readxl)
+library(lubridate)
+library(dplyr)
+```
+
+# Importation des données
+
+```{r, eval=TRUE, echo=TRUE}
+
+#les_fichiers <- choose.files()
+les_fichiers <- c("C:\\git\\Baguage\\data\\masque_saisie_donnees_crbpo_v3.118_RL_SPOL-JDP_2017.xlsx","C:\\git\\Baguage\\data\\masque_saisie_donnees_crbpo_v3.118_RL_SPOL-JDP_2018.xlsx","C:\\git\\Baguage\\data\\masque_saisie_donnees_crbpo_v3.118_RL_SPOL-JDP_2018_2019.xlsx")
+les_hivers <- c("2017-18","2017-18","2018-19")
+
+d <- NULL
+for(i in 1:length(les_fichiers)){
+    file_name <- les_fichiers[i]
+    cat(file_name,"\n")
+    di <- read_xlsx(file_name, sheet = "SAISIE")
+    di$hiver <- les_hivers[i]
+    cat(nrow(di),"lignes\n")
+    d <- rbind(d,di)
+}
+
+d <- data.table(d)
+d$date <- as_date(d$DATE)
+d$HEURE <- format(as.POSIXct(d$HEURE),"%H:%M")
+d$HS <- format(as.POSIXct(d$HS),"%H:%M")
+d$DS <- format(as.POSIXct(d$DS),"%H:%M")
+
+dsp <- fread("library/CODES_ESPECES_CRBPO.csv")
+dsp <- dsp[,c("CODE","NOM VERNACULAIRE"),with=FALSE]
+colnames(dsp) <- c("ESPECE","nom_sp")
+
+d <- data.table(left_join(d,dsp))
+
+```
+
+## La station de capture
+
+```{r, eval=TRUE, echo=TRUE}
+col_prog <- c("PAYS","DEPT","Dept en clair","LOCALITE","LIEUDIT","LAT","LON","THEME SESSION","BAGUEUR")
+d_prog <- unique(d[d$ACT == "B",col_prog,with=FALSE])
+print(d_prog)
+
+```
+
+## Les session de capture
+
+```{r, eval=TRUE, echo=TRUE}
+
+col_session <- c("hiver","date","FS","HS","DS","MEMO SESSION")
+d_session <- unique(d[d$ACT == "B",col_session,with=FALSE])
+d_sesion <- d_session[order(date),]
+print(d_session)
+
+
+```
+
+## Les données de capture
+
+
+```{r, eval=TRUE, echo=TRUE}
+col <-c("hiver","date","ACTION","CENTRE","BAGUE","HEURE","ESPECE","nom_sp","SEXE","AGE","LP","LT","MA","AD","COND REPR","CIRC REPR","MEMO","CS","CA","PC","PI","ES","MU","SG","SC")
+dd <- unique(d[,col,with=FALSE])
+dd <- dd[order(date,HEURE)]
+
+cat("Dimension de la table de données:",dim(dd),"\n")
+head(dd)
+
+```
+
+
+
+# Bilan
+
+## Les espèces par hiver
+
+
+```{r, eval=TRUE, echo=TRUE}
+
+col_sp <- c("hiver","CENTRE","BAGUE","nom_sp")
+ddsp <- unique(dd[,col_sp,with=FALSE])
+
+agg_sp <- aggregate(BAGUE~hiver+nom_sp,data=ddsp,length)
+colnames(agg_sp) <- c("hiver","sp","nombre")
+
+agg_sp_w <- dcast(sp ~ hiver,data=agg_sp)
+
+agg_sp_w[is.na(agg_sp_w)] <- 0
+
+agg_sp_w$TOTAL <- rowSums(agg_sp_w[,-1])
+agg_sp_w <- agg_sp_w[order(agg_sp_w$TOTAL,decreasing = TRUE),]
+
+dtot <-data.frame("Total",matrix(colSums(agg_sp_w[,-1]),nrow=1))
+colnames(dtot) <- colnames(agg_sp_w)
+
+    agg_sp_w <- rbind(agg_sp_w,dtot)
+colnames(agg_sp_w)[1] <- "espèce"
+
+agg_sp_w <- data.table(agg_sp_w)
+
+print(agg_sp_w)
+
+
+```
+
