@@ -36,6 +36,8 @@ sig/
 *.nc
 *.org
 *.org~
+*.xls
+*.xlsx
 
 my*
 
