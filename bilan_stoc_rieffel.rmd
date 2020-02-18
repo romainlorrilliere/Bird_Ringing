@@ -1,0 +1,191 @@
+---
+title: "Le STOC capture de Rieffel"
+author: "Romain Lorrilliere"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+    fig_height: 12
+    fig_width: 16
+    toc: yes
+    toc_depth: 1
+  pdf_document:
+    toc: yes
+    toc_depth: '1'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+# rmarkdown::render("bilan_stoc_rieffel.rmd",output_file="output/stoc_rieffel")
+```
+# Les packages
+
+```{r , eval=TRUE, echo=TRUE}
+library(data.table)
+library(readxl)
+library(lubridate)
+library(dplyr)
+
+source("fun_ringing_cleaning.r")
+```
+
+# Importation des données
+
+```{r, eval=TRUE, echo=TRUE}
+
+##les_fichiers <- choose.files()
+les_fichiers <- c("C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2018.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2019.xlsx")
+
+d <- NULL
+for(i in 1:length(les_fichiers)){
+    file_name <- les_fichiers[i]
+    cat(file_name,"\n")
+    di <- read_xlsx(file_name, sheet = "SAISIE")
+    cat(nrow(di),"lignes\n")
+    d <- rbind(d,di)
+}
+
+d <- data.table(d)
+d$DATE <- as_date(d$DATE)
+d$YEAR <- year(d$DATE)
+d$HEURE <- format(as.POSIXct(d$HEURE),"%H:%M")
+d$HS <- format(as.POSIXct(d$HS),"%H:%M")
+d$DS <- format(as.POSIXct(d$DS),"%H:%M")
+
+dsp <- fread("library/CODES_ESPECES_CRBPO.csv")
+dsp <- dsp[,c("CODE","NOM VERNACULAIRE"),with=FALSE]
+colnames(dsp) <- c("ESPECE","nom_sp")
+
+d <- data.table(left_join(d,dsp))
+
+```
+
+## La station de capture
+
+```{r, eval=TRUE, echo=TRUE}
+col_prog <- c("PAYS","DEPT","LOCALITE","LIEUDIT","LAT","LON","THEME SESSION","BAGUEUR")
+d_prog <- unique(d[d$ACT == "B",col_prog,with=FALSE])
+print(d_prog)
+
+```
+
+## Les session de capture
+
+```{r, eval=TRUE, echo=TRUE}
+
+col_session <- c("YEAR","DATE","FS","HS","DS","MEMO SESSION")
+d_session <- unique(d[d$ACT == "B",col_session,with=FALSE])
+d_sesion <- d_session[order(DATE),]
+print(d_session)
+
+
+```
+
+## Les données de capture
+
+
+```{r, eval=TRUE, echo=TRUE}
+col <-c("YEAR","DATE","ACTION","CENTRE","BAGUE","HEURE","ESPECE","nom_sp","SEXE","AGE","LP","LT","MA","AD","COND REPR","CIRC REPR","MEMO","CS","CA","PC","PI","ES","MU","SG","SC")
+dd <- unique(d[,col,with=FALSE])
+dd <- dd[order(DATE,HEURE)]
+
+cat("Dimension de la table de données:",dim(dd),"\n")
+head(dd)
+
+```
+
+
+
+# Bilan
+
+## Les espèces par saisons
+
+
+```{r, eval=TRUE, echo=TRUE}
+
+col_sp <- c("YEAR","CENTRE","BAGUE","nom_sp")
+ddsp <- unique(dd[,col_sp,with=FALSE])
+
+agg_sp <- aggregate(BAGUE~YEAR+nom_sp,data=ddsp,length)
+colnames(agg_sp) <- c("YEAR","sp","nombre")
+
+agg_sp_w <- dcast(sp ~ YEAR,data=agg_sp)
+
+agg_sp_w[is.na(agg_sp_w)] <- 0
+
+agg_sp_w$TOTAL <- rowSums(agg_sp_w[,-1])
+agg_sp_w <- agg_sp_w[order(agg_sp_w$TOTAL,decreasing = TRUE),]
+
+dtot <-data.frame("Total",matrix(colSums(agg_sp_w[,-1]),nrow=1))
+colnames(dtot) <- colnames(agg_sp_w)
+
+agg_sp_w <- rbind(agg_sp_w,dtot)
+colnames(agg_sp_w)[1] <- "espèce"
+
+agg_sp_w <- data.table(agg_sp_w)
+
+print(agg_sp_w)
+
+
+```
+
+## Les productivitées par espèce et par saison
+
+
+```{r, eval=TRUE, echo=TRUE}
+dd <- add_age(dd)
+dim(dd)
+head(dd)
+
+col_sp <- c("YEAR","CENTRE","BAGUE","nom_sp","AGE_first")
+ddsp <- unique(dd[,col_sp,with=FALSE])
+
+agg_age_year <- aggregate(BAGUE~YEAR+nom_sp+AGE_first,data=ddsp,length)
+colnames(agg_age_year) <- c("YEAR","sp","AGE_first","nombre")
+
+agg_tot_year <- aggregate(nombre~YEAR+sp,data=agg_age_year,sum)
+colnames(agg_tot_year) <- c("YEAR","sp","tot")
+
+agg_age_year <- subset(agg_age_year, AGE_first == "JUV")
+
+agg_age_year <- full_join(agg_age_year,agg_tot_year)
+agg_age_year$nombre[is.na(agg_age_year$nombre)] <- 0
+agg_age_year$prop <- round(agg_age_year$nombre / agg_age_year$tot,3)
+agg_age_year <- agg_age_year[,c("YEAR","sp","prop")]
+
+
+agg_sp_w <- dcast(sp ~ YEAR,data=agg_age_year)
+
+agg_sp_w[is.na(agg_sp_w)] <- 0
+
+
+
+
+
+agg_age <- aggregate(BAGUE~nom_sp+AGE_first,data=ddsp,length)
+colnames(agg_age) <- c("sp","AGE_first","nombre")
+
+agg_tot <- aggregate(nombre~sp,data=agg_age,sum)
+colnames(agg_tot) <- c("sp","tot")
+
+agg_age <- subset(agg_age, AGE_first == "JUV")
+agg_age <- full_join(agg_age,agg_tot)
+agg_age$nombre[is.na(agg_age$nombre)] <- 0
+agg_age$TOTAL <- round(agg_age$nombre / agg_age$tot,3)
+agg_age <- agg_age[,c("sp","TOTAL")]
+
+
+agg_sp_w <- inner_join(agg_sp_w,agg_age)
+
+agg_sp_w <- agg_sp_w[order(agg_sp_w$TOTAL,decreasing = TRUE),]
+
+
+colnames(agg_sp_w)[1] <- "espèce"
+
+agg_sp_w <- data.table(agg_sp_w)
+
+print(agg_sp_w)
+
+
+```
+
