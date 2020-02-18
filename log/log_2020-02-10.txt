@@ -1,0 +1,107 @@
+
+====================================
+
+ - Checking: Sex
+------------------------------------
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
+
+====================================
+
+ - Checking: Age
+------------------------------------
+    -- add column AGE_stage (JUV, AD, VOL)
+    -- add column AGE_first (JUV, AD, VOL)
