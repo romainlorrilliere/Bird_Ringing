@@ -1,0 +1,40 @@
+sp_code_crbpo,update,french_name,scientific_name_crbpo,group,diam,letter,material,position,nb
+ACCNIS,"",Épervier d'Europe,Accipiter nisus,M,5,G,ALU,TM,1
+ACCNIS,"",Épervier d'Europe,Accipiter nisus,F,7,F,ALU,TM,1
+AEGCAU,"",Mésange à longue queue,Aegithalos caudatus,"",2,R,ALU,TM,20
+CARCHL,"",Verdier d'Europe,Carduelis chloris,"",3,S,ALU,TM,42
+CARINA,code,Linotte mélodieuse,Carduelis cannabina,"","2,3",O,ALU,TM,1
+CARLIS,code,Chardonneret élégant,Carduelis carduelis,"","2,3",O,ALU,TM,10
+CARNUS,"",Tarin des aulnes,Carduelis spinus,"","2,3/2",O/R,ALU,TM,2
+CERYLA,code,Grimpereau des jardins,Certhia brachydactyla,"",2,R,ALU,TM,6
+COLBUS,code,Pigeon ramier,Columba palumbus,"","8,5",E,ALU,TM,0
+COLLIV,"",Pigeon biset,Columba livia,"",7,F,ALU,TM,1
+COLNAS,code,Pigeon colombin,Columba oenas,"",7,F,ALU,TM,1
+DENMED,new,Pic mar,Dendrocopos medius,"","3,5",L,ALU,TM,2
+ERIRUB,"",Rougegorge familier,Erithacus rubecula,"","2,3",O,ALU,TM,52
+FALTIN,"",Faucon crécerelle,Falco tinnunculus,"",7,F,ALU,TM,1
+FRICOE,"",Pinson des arbres,Fringilla coelebs,"","2,3",O,ALU,TM,32
+MOTALB,"",Bergeronnette grise,Motacilla alba,"","2,3",O,ALU,TM,1
+PAPALU,code,Mésange nonnette,Parus palustris,"","2,3",O,ALU,TM,11
+PARATE,"",Mésange noire,Periparus ater,"","2,3",O,ALU,TM,11
+PARCAE,"",Mésange bleue,Cyanistes caeruleus,"","2,3",O,ALU,TM,596
+PARCRI,"",Mésange huppée,Parus cristatus,"","2,3",O,ALU,TM,28
+PARMAJ,new,Mésange charbonnière,Parus major,VOL,"2,3",O,ALU,TM,278
+PARMAJ,new,Mésange charbonnière,Parus major,PUL,"2,5",V,ALU,TM,278
+PASDOM,"",Moineau domestique,Passer domesticus,"",3,S,ALU,TM,33
+PHYCOL,"",Pouillot véloce,Phylloscopus collybita,"",2,R,ALU,TM,8
+PICDIS,"",Pic vert,Picus viridis,"",6,GY,ALU,TM,1
+PRUMOD,"",Accenteur mouchet,Prunella modularis,"","2,3",O,ALU,TM,22
+PSIKRA,pref,Perruche à collier,Psittacula krameri,"",7,FX,ACI,TM,15
+PYRULA,"",Bouvreuil pivoine,Pyrrhula pyrrhula,"","2,3",O,ALU,TM,2
+REGIGN,"",Roitelet triple-bandeau,Regulus ignicapillus,"",2,R,ALU,TM,3
+REGREG,"",Roitelet huppé,Regulus regulus,"",2,R,ALU,TM,5
+SERSER,"",Serin cini,Serinus serinus,"",2,R,ALU,TM,1
+SITEUR,new,Sittelle torchepot,Sitta europaea,"","2,5",V,ALU,TM,22
+SYLATR,"",Fauvette à tête noire,Sylvia atricapilla,"","2,3",O,ALU,TM,6
+TROTRO,new,Troglodyte mignon,Troglodytes troglodytes,"","2/2,3",R/O,ALU,TM,16
+TURILI,new,Grive mauvis,Turdus iliacus,"","3,5",L,ALU,TM,0
+TURMER,"",Merle noir,Turdus merula,"","4,2",J,ALU,TM,32
+TURPHI,new,Grive musicienne,Turdus philomelos,"","3,5",L,ALU,TM,2
+TURPIL,new,Grive litorne,Turdus pilaris,"","4,2",J,ALU,TM,0
+TURVIS,new,Grive draine,Turdus viscivorus,"","4,2",J,ALU,TM,0
