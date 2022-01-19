@@ -46,3 +46,5 @@ isd-history.csv
 f_coord_ROUTE.R
 
 myScript_trend.R
+*.qgz
+*.cpg
