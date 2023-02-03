@@ -25,6 +25,7 @@ library(data.table)
 library(readxl)
 library(lubridate)
 library(dplyr)
+library(ggplot2)
 
 source("fun_ringing_cleaning.r")
 ```
@@ -34,14 +35,17 @@ source("fun_ringing_cleaning.r")
 ```{r, eval=TRUE, echo=TRUE}
 
 ##les_fichiers <- choose.files()
-les_fichiers <- c("C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2018.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2019.xlsx")
+les_fichiers <- c("C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2018.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2019.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2020.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v4_8_RL_STOC-Rieffel_2021.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v4_10_RL_STOC-Rieffel_2022.xlsx")
+
+lescolonnes <- c("ACTION","CENTRE","BAGUE","DATE","HEURE", "ESPECE","SEXE","AGE","MEMO SESSION","MEMO","FS","HS","DS","NF","CS","PI","PC","LP","LT","MA","ES","MU","COND REPR","CIRC REPR","PAYS","DEPT","LOCALITE","LIEUDIT","LAT","LON","THEME SESSION","BAGUEUR")
 
 d <- NULL
 for(i in 1:length(les_fichiers)){
     file_name <- les_fichiers[i]
     cat(file_name,"\n")
     di <- read_xlsx(file_name, sheet = "SAISIE")
-    cat(nrow(di),"lignes\n")
+  di <- di[,lescolonnes]
+        cat(nrow(di),"lignes\n")
     d <- rbind(d,di)
 }
 
@@ -52,17 +56,18 @@ d$HEURE <- format(as.POSIXct(d$HEURE),"%H:%M")
 d$HS <- format(as.POSIXct(d$HS),"%H:%M")
 d$DS <- format(as.POSIXct(d$DS),"%H:%M")
 
-dsp <- fread("library/CODES_ESPECES_CRBPO.csv")
+dsp <- fread("library/CODES_ESPECES_CRBPO.csv",encoding="Latin-1")
 dsp <- dsp[,c("CODE","NOM VERNACULAIRE"),with=FALSE]
 colnames(dsp) <- c("ESPECE","nom_sp")
 
 d <- data.table(left_join(d,dsp))
 
+fwrite(d,"data/data_stoc_rieffel_fr.csv",sep=";",dec=",")
 ```
 
 ## La station de capture
 
-```{r, eval=TRUE, echo=TRUE}
+```{r, eval=FALSE, echo=TRUE}
 col_prog <- c("PAYS","DEPT","LOCALITE","LIEUDIT","LAT","LON","THEME SESSION","BAGUEUR")
 d_prog <- unique(d[d$ACT == "B",col_prog,with=FALSE])
 print(d_prog)
@@ -85,7 +90,7 @@ print(d_session)
 
 
 ```{r, eval=TRUE, echo=TRUE}
-col <-c("YEAR","DATE","ACTION","CENTRE","BAGUE","HEURE","ESPECE","nom_sp","SEXE","AGE","LP","LT","MA","AD","COND REPR","CIRC REPR","MEMO","CS","CA","PC","PI","ES","MU","SG","SC")
+col <-c("YEAR","DATE","ACTION","CENTRE","BAGUE","HEURE","ESPECE","nom_sp","SEXE","AGE","LP","LT","MA","COND REPR","CIRC REPR","MEMO","CS","PC","PI","ES","MU")
 dd <- unique(d[,col,with=FALSE])
 dd <- dd[order(DATE,HEURE)]
 
@@ -102,14 +107,13 @@ head(dd)
 
 
 ```{r, eval=TRUE, echo=TRUE}
-
+setDT(dd)
 col_sp <- c("YEAR","CENTRE","BAGUE","nom_sp")
 ddsp <- unique(dd[,col_sp,with=FALSE])
 
-agg_sp <- aggregate(BAGUE~YEAR+nom_sp,data=ddsp,length)
-colnames(agg_sp) <- c("YEAR","sp","nombre")
+agg_sp <- ddsp[,.(nombre = .N),by=.(YEAR,nom_sp)]#aggregate(BAGUE~YEAR+nom_sp,data=ddsp,length)
 
-agg_sp_w <- dcast(sp ~ YEAR,data=agg_sp)
+agg_sp_w <- dcast(nom_sp ~ YEAR,data=agg_sp)
 
 agg_sp_w[is.na(agg_sp_w)] <- 0
 
@@ -125,7 +129,39 @@ colnames(agg_sp_w)[1] <- "espèce"
 agg_sp_w <- data.table(agg_sp_w)
 
 print(agg_sp_w)
+```
 
+
+```{r data_fig_sp_year,eval=TRUE,echo=TRUE}
+nb_year <- max(d[,YEAR]) - min(d[,YEAR]) + 1
+agg_sp <- merge(agg_sp,expand.grid(YEAR = unique(agg_sp[,YEAR]),nom_sp = unique(agg_sp[,nom_sp])),all=TRUE)
+agg_sp[is.na(nombre),nombre := 0]
+agg_sp[,`:=`(tot = sum(nombre),occ = sum(nombre>0)),by=nom_sp]
+
+agg_sp[,YEAR := as.numeric(YEAR)]
+setorder(agg_sp,-tot,nom_sp,-YEAR)
+
+
+dgg <- subset(agg_sp,occ > nb_year / 2)
+dgg[,nom_sp := factor(nom_sp,levels=unique(agg_sp[,nom_sp]))]
+
+
+```
+
+
+
+
+
+```{r fig_sp_year,eval=TRUE,echo=TRUE}
+
+
+
+gg <- ggplot(dgg ,aes(x = YEAR,y = nombre,colour=nom_sp, group=nom_sp)) + facet_wrap(.~nom_sp,scales="free_y")
+gg <- gg + geom_smooth(method="lm",se=TRUE,size=0.5,alpha=0.5,colour = "black")
+gg <- gg + geom_line(size=1,alpha=.8)+ geom_point(size=1.8) + geom_point(data=dgg[nombre ==0,],size=1.2,colour="white")
+gg <- gg + theme(legend.position = "none") + labs(x="",y="Nombre de captures")
+gg
+ggsave("output/STOC_rieffel_nb_capture_sp.png",gg)
 
 ```
 
@@ -137,24 +173,22 @@ dd <- add_age(dd)
 dim(dd)
 head(dd)
 
+setDT(dd)
 col_sp <- c("YEAR","CENTRE","BAGUE","nom_sp","AGE_first")
 ddsp <- unique(dd[,col_sp,with=FALSE])
 
-agg_age_year <- aggregate(BAGUE~YEAR+nom_sp+AGE_first,data=ddsp,length)
-colnames(agg_age_year) <- c("YEAR","sp","AGE_first","nombre")
-
-agg_tot_year <- aggregate(nombre~YEAR+sp,data=agg_age_year,sum)
-colnames(agg_tot_year) <- c("YEAR","sp","tot")
+agg_age_year <- ddsp[,.(nombre = .N), by = .(YEAR,nom_sp,AGE_first)]
+agg_tot_year <- ddsp[,.(tot = .N), by = .(YEAR,nom_sp)]
 
 agg_age_year <- subset(agg_age_year, AGE_first == "JUV")
 
 agg_age_year <- full_join(agg_age_year,agg_tot_year)
-agg_age_year$nombre[is.na(agg_age_year$nombre)] <- 0
-agg_age_year$prop <- round(agg_age_year$nombre / agg_age_year$tot,3)
-agg_age_year <- agg_age_year[,c("YEAR","sp","prop")]
+agg_age_year[is.na(nombre),nombre := 0]
+agg_age_year[,prop := round(nombre / tot,3)]
+agg_age_year <- agg_age_year[,.(YEAR,nom_sp,prop)]
 
 
-agg_sp_w <- dcast(sp ~ YEAR,data=agg_age_year)
+agg_sp_w <- dcast(nom_sp ~ YEAR,data=agg_age_year) 
 
 agg_sp_w[is.na(agg_sp_w)] <- 0
 
@@ -181,11 +215,42 @@ agg_sp_w <- agg_sp_w[order(agg_sp_w$TOTAL,decreasing = TRUE),]
 
 
 colnames(agg_sp_w)[1] <- "espèce"
-
-agg_sp_w <- data.table(agg_sp_w)
-
 print(agg_sp_w)
 
 
 ```
 
+
+
+
+```{r data_fig_sp_age_year,eval=TRUE,echo=TRUE}
+nb_year <- max(d[,YEAR]) - min(d[,YEAR]) + 1
+setDT(agg_age_year)
+agg_age_year[,YEAR := as.numeric(YEAR)]
+
+agg_age_year <- merge(agg_age_year,agg_sp,by=c("nom_sp","YEAR"))
+setorder(agg_age_year,-tot,nom_sp,-YEAR)
+
+
+dgg_age <- subset(agg_age_year,occ > nb_year / 2)
+dgg_age[,nom_sp := factor(nom_sp,levels=unique(agg_sp[,nom_sp]))]
+
+
+```
+
+
+
+
+
+```{r fig_sp_age_year,eval=TRUE,echo=TRUE}
+
+
+
+gg <- ggplot(dgg_age ,aes(x = YEAR,y = prop,colour=nom_sp, group=nom_sp)) + facet_wrap(.~nom_sp,scales="free_y")
+gg <- gg + geom_smooth(method="lm",se=TRUE,size=0.5,alpha=0.5,colour = "black")
+gg <- gg + geom_line(size=1,alpha=.8)+ geom_point(size=1.8) + geom_point(data=dgg_age[nombre ==0,],size=1.2,colour="white")
+gg <- gg + theme(legend.position = "none") + labs(x="",y="Proportion de jeune")
+gg
+ggsave("output/STOC_rieffel_prop_juv_sp.png",gg)
+
+```
