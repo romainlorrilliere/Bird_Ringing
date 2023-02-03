@@ -1,12 +1,12 @@
 ---
-title: "Le SPOL mangeoire du MNHN"
+title: "Le SPOL mangeoire du jardin des Plantes du MNHN"
 author: "Romain Lorrilliere"
-date: "07/11/2019"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
 # rmarkdown::render("bilan_spol_mangeoire.rmd",output_file="output/spol_mangeoire")
 ```
 # Les packages
@@ -16,56 +16,147 @@ library(data.table)
 library(readxl)
 library(lubridate)
 library(dplyr)
+library(stringr)
+library(leaflet)
+library(sf)
+
+
+source("functions/fun_rmd_generic.r")
 ```
 
-# Importation des données
+# Les données
 
-```{r, eval=TRUE, echo=TRUE}
+```{r colonnes}
+ lescolonnes <- c("ACTION","CENTRE","BAGUE","DATE","HEURE", "ESPECE","SEXE","AGE","MEMO SESSION","MEMO","FS","HS","DS","NF","CS","PI","PC","LP","LT","MA","ES","MU","COND REPR","CIRC REPR","PAYS","DEPT","LOCALITE","LIEUDIT","LAT","LON","THEME SESSION","THEME","BAGUEUR","BG","AD", "CA", "SG", "SC")
+```
+
+
+
+```{r data_crbpo}
+
+fichier_crbpo <- "data_raw/data_crbpo_75_spol_2022.xlsx"
+d_crbpo <- read_xlsx(fichier_crbpo, sheet = "Extrait")
+setDT(d_crbpo)
+#cat(nrow(d_crbpo),"lignes\n")
+
+d_crbpo[,SC := str_split_fixed(MEMO, "SC: ", 2)[,2]]
+d_crbpo <- d_crbpo[,lescolonnes,with = FALSE]
+setnames(d_crbpo,colnames(d_crbpo),gsub(" ","_",colnames(d_crbpo)))
+d_crbpo[,BAGUE := gsub("\\.","",BAGUE)]
+
+```
+
+
+
+```{r les_fichier}
 
 #les_fichiers <- choose.files()
-les_fichiers <- c("C:\\git\\Baguage\\data\\masque_saisie_donnees_crbpo_v3.118_RL_SPOL-JDP_2017.xlsx","C:\\git\\Baguage\\data\\masque_saisie_donnees_crbpo_v3.118_RL_SPOL-JDP_2018.xlsx","C:\\git\\Baguage\\data\\masque_saisie_donnees_crbpo_v3.118_RL_SPOL-JDP_2018_2019.xlsx")
-les_hivers <- c("2017-18","2017-18","2018-19")
+ les_fichiers <- dir("saisie/")
+    les_fichiers <- les_fichiers[grep("SPOL",les_fichiers)]
 
-d <- NULL
-for(i in 1:length(les_fichiers)){
-    file_name <- les_fichiers[i]
-    cat(file_name,"\n")
-    di <- read_xlsx(file_name, sheet = "SAISIE")
-    di$hiver <- les_hivers[i]
-    cat(nrow(di),"lignes\n")
-    d <- rbind(d,di)
-}
+    les_fichiers <- les_fichiers[grep("xlsx",les_fichiers)]
 
-d <- data.table(d)
-d$date <- as_date(d$DATE)
-d$HEURE <- format(as.POSIXct(d$HEURE),"%H:%M")
-d$HS <- format(as.POSIXct(d$HS),"%H:%M")
-d$DS <- format(as.POSIXct(d$DS),"%H:%M")
+    les_fichiers <- paste0("saisie/",les_fichiers)
 
-dsp <- fread("library/CODES_ESPECES_CRBPO.csv")
+    t_fichiers <- data.frame(nom = les_fichiers)
+my_kable_print(t_fichiers,scroll = FALSE)
+
+```
+
+
+
+```{r importation,  eval=TRUE}
+   
+    d <- NULL
+    for(i in 1:length(les_fichiers)){
+        file_name <- les_fichiers[i]
+      #  cat(file_name,"\n")
+        di <- read_xlsx(file_name, sheet = "SAISIE")
+        di <- di[,lescolonnes]
+       # cat(nrow(di),"lignes\n")
+        d <- rbind(d,di)
+    }
+
+    setDT(d)
+    setnames(d,colnames(d),gsub(" ","_",colnames(d)))
+    d[,HEURE := format(as.POSIXct(HEURE),"%H:%M:%S")]
+       d[,DS := format(as.POSIXct(DS),"%H:%M:%S")]
+          d[,HS := format(as.POSIXct(HS),"%H:%M:%S")]
+```   
+    
+    
+```{r new_data}
+
+d_new <- d[!(DATE %in% d_crbpo[,DATE])]
+  # cat(nrow(d_new),"lignes\n")
+
+   d_all <- rbind(d_crbpo,d_new)
+   #  cat(nrow(d_all),"lignes\n")
+   
+    
+```
+    
+```{r dall}   
+
+d_all[,DATE:=as.Date(DATE)]
+d_all[,H := ifelse(is.na(HEURE),"00:00:00",HEURE)]
+#d_all[,DATE_txt := format(DATE)]
+#d_all[,DATE_TIME_txt := paste0(format(DATE)," ",ifelse(is.na(HEURE),"00:00:00",HEURE))]
+#d_all[,DATE_TIME := as.POSIXct(DATE_TIME_txt,format = "%Y-%m-%d %H:%M:%S",tz="CET")]  
+
+d_all[,DATE_TIME := as.POSIXct(paste0(format(DATE)," ",ifelse(is.na(HEURE),"00:00:00",HEURE)),format = "%Y-%m-%d %H:%M:%S",tz="CET")]  
+
+d_all[,':='(LON = round(as.numeric(LON),4),LAT = round(as.numeric(LAT),4))]
+
+d_all[,YEAR := year(DATE)]
+d_all[,MONTH := month(DATE)]
+d_all[,HIVER_START := ifelse(MONTH > 9, YEAR,YEAR - 1)]
+d_all[,LOCALITE := str_to_title(LOCALITE)]    
+d_all[grep("ardin",LIEUDIT),`:=`(LIEUDIT = "Jardin des plantes (jardin écologique)", LON = 2.3620, LAT = 48.8444)]
+d_all[BG == "" | is.na(BG),BG := BAGUEUR]
+
+
+dsp <- fread("library/CODES_ESPECES_CRBPO.csv",encoding = "Latin-1")
 dsp <- dsp[,c("CODE","NOM VERNACULAIRE"),with=FALSE]
 colnames(dsp) <- c("ESPECE","nom_sp")
 
-d <- data.table(left_join(d,dsp))
+d_all <- data.table(left_join(d_all,dsp))
+setorder(d_all,DATE_TIME)
+
+d <- d_all[BAGUEUR == "LORRILLIERE, Romain",]
+
+
 
 ```
 
 ## La station de capture
 
-```{r, eval=TRUE, echo=TRUE}
-col_prog <- c("PAYS","DEPT","Dept en clair","LOCALITE","LIEUDIT","LAT","LON","THEME SESSION","BAGUEUR")
-d_prog <- unique(d[d$ACT == "B",col_prog,with=FALSE])
+```{r colonne}
+col_prog <- c("PAYS","DEPT","LOCALITE","LIEUDIT","LAT","LON","THEME_SESSION","BAGUEUR")
+d_prog <- unique(d[ACTION == "B",col_prog,with=FALSE])
 print(d_prog)
 
 ```
 
+```{r map_place}
+
+#nets <- st_read("GIS/filet_spol.shp")
+
+m <- leaflet() %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addMarkers(lng=d_prog[1,LON], lat=d_prog[1,LAT], popup="Le site de capture")
+
+m
+```
+![Les filets de la station SPOL mangeoire du Jardin des plantes](GIS/spol_jdp.png)
+
 ## Les session de capture
 
-```{r, eval=TRUE, echo=TRUE}
+```{r session}
 
-col_session <- c("hiver","date","FS","HS","DS","MEMO SESSION")
-d_session <- unique(d[d$ACT == "B",col_session,with=FALSE])
-d_sesion <- d_session[order(date),]
+col_session <- c("HIVER_START","DATE","FS","HS","DS","MEMO_SESSION")
+d_session <- unique(d[d$ACTION == "B",col_session,with=FALSE])
+d_sesion <- setorder(d_session, DATE)
 print(d_session)
 
 
@@ -74,10 +165,10 @@ print(d_session)
 ## Les données de capture
 
 
-```{r, eval=TRUE, echo=TRUE}
-col <-c("hiver","date","ACTION","CENTRE","BAGUE","HEURE","ESPECE","nom_sp","SEXE","AGE","LP","LT","MA","AD","COND REPR","CIRC REPR","MEMO","CS","CA","PC","PI","ES","MU","SG","SC")
+```{r, eval=TRUE}
+col <-c("HIVER_START","DATE","ACTION","CENTRE","BAGUE","HEURE","ESPECE","nom_sp","SEXE","AGE","LP","LT","MA","AD","COND_REPR","CIRC_REPR","MEMO","CS","CA","PC","PI","ES","MU","SG","SC")
 dd <- unique(d[,col,with=FALSE])
-dd <- dd[order(date,HEURE)]
+dd <- setorder(dd,HEURE)
 
 cat("Dimension de la table de données:",dim(dd),"\n")
 head(dd)
@@ -93,10 +184,10 @@ head(dd)
 
 ```{r, eval=TRUE, echo=TRUE}
 
-col_sp <- c("hiver","CENTRE","BAGUE","nom_sp")
+col_sp <- c("HIVER_START","CENTRE","BAGUE","nom_sp")
 ddsp <- unique(dd[,col_sp,with=FALSE])
 
-agg_sp <- aggregate(BAGUE~hiver+nom_sp,data=ddsp,length)
+agg_sp <- aggregate(BAGUE~HIVER_START+nom_sp,data=ddsp,length)
 colnames(agg_sp) <- c("hiver","sp","nombre")
 
 agg_sp_w <- dcast(sp ~ hiver,data=agg_sp)
@@ -119,3 +210,31 @@ print(agg_sp_w)
 
 ```
 
+## Les nombres d'oiseaux par stagiaires
+
+```{r stagiaire}
+
+dstag1 <- dd[!is.na(SG),.(Total = .N),by = .(SG)]
+
+dstag2 <- dd[!is.na(SG),.(nb = .N),by = .(SG,ACTION)]
+dstag2 <- dcast(dstag2,SG ~ ACTION)
+dstag2[is.na(dstag2)] <- 0
+
+dstag <- merge(dstag1,dstag2)
+dstag <- setorder(dstag,SG)
+
+print(dstag)
+
+```
+## Les nombres d'oiseaux par stagiaires
+
+```{r script}
+
+dsc <- dd[!is.na(SC),.(nb = .N),by = .(SC)]
+
+
+dsc <- setorder(dsc,-nb)
+
+print(dsc)
+
+```
