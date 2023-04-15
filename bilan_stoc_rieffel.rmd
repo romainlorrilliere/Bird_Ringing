@@ -49,6 +49,7 @@ for(i in 1:length(les_fichiers)){
     d <- rbind(d,di)
 }
 
+d <- fread("data/data_stoc_rieffel.csv")
 d <- data.table(d)
 d$DATE <- as_date(d$DATE)
 d$YEAR <- year(d$DATE)
