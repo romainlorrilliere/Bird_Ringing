@@ -35,7 +35,9 @@ source("fun_ringing_cleaning.r")
 ```{r, eval=TRUE, echo=TRUE}
 
 ##les_fichiers <- choose.files()
-les_fichiers <- c("C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2018.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2019.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2020.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v4_8_RL_STOC-Rieffel_2021.xlsx","C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v4_10_RL_STOC-Rieffel_2022.xlsx")
+les_fichiers <- dir("C:/git/Bird_Ringing/saisie",recursive = TRUE,full.names = TRUE,pattern = "STOC") 
+  
+  #c("C:\\git\\Bird_Ringing\\saisie\\archive\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2018.xlsx",                  "C:\\git\\Bird_Ringing\\saisie\\archive\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2019.xlsx",                  "C:\\git\\Bird_Ringing\\saisie\\archive\\masque_saisie_donnees_crbpo_v3.118_RL_STOC-Rieffel_2020.xlsx",                  "C:\\git\\Bird_Ringing\\saisie\\archive\\masque_saisie_donnees_crbpo_v4_8_RL_STOC-Rieffel_2021.xlsx",                  "C:\\git\\Bird_Ringing\\saisie\\masque_saisie_donnees_crbpo_v4_10_RL_STOC-Rieffel_2022.xlsx")
 
 lescolonnes <- c("ACTION","CENTRE","BAGUE","DATE","HEURE", "ESPECE","SEXE","AGE","MEMO SESSION","MEMO","FS","HS","DS","NF","CS","PI","PC","LP","LT","MA","ES","MU","COND REPR","CIRC REPR","PAYS","DEPT","LOCALITE","LIEUDIT","LAT","LON","THEME SESSION","BAGUEUR")
 
@@ -49,19 +51,25 @@ for(i in 1:length(les_fichiers)){
     d <- rbind(d,di)
 }
 
-d <- fread("data/data_stoc_rieffel.csv")
-d <- data.table(d)
+#d <- fread("data/data_stoc_rieffel.csv")
+#d <- data.table(d)
 d$DATE <- as_date(d$DATE)
 d$YEAR <- year(d$DATE)
 d$HEURE <- format(as.POSIXct(d$HEURE),"%H:%M")
 d$HS <- format(as.POSIXct(d$HS),"%H:%M")
 d$DS <- format(as.POSIXct(d$DS),"%H:%M")
 
+setDT(d)
+
+print(d)
+
 dsp <- fread("library/CODES_ESPECES_CRBPO.csv",encoding="Latin-1")
 dsp <- dsp[,c("CODE","NOM VERNACULAIRE"),with=FALSE]
 colnames(dsp) <- c("ESPECE","nom_sp")
+setDT(dsp)
 
-d <- data.table(left_join(d,dsp))
+
+d <- merge(d, dsp, by = "ESPECE")
 
 fwrite(d,"data/data_stoc_rieffel_fr.csv",sep=";",dec=",")
 ```
