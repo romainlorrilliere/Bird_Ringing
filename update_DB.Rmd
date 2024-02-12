@@ -1,0 +1,103 @@
+---
+title: "Mise à jour base de donnée"
+author: "Romain Lorrilliere"
+date: "2024-02-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message = FALSE,warning = FALSE)
+# rmarkdown::render("bilan_spol_mangeoire.rmd",output_file="output/spol_mangeoire")
+```
+# Les packages
+
+```{r , eval=TRUE, echo=TRUE}
+library(data.table)
+library(readxl)
+library(lubridate)
+library(dplyr)
+library(stringr)
+library(leaflet)
+library(sf)
+
+
+source("functions/fun_rmd_generic.r")
+```
+
+# Les données
+
+```{r colonnes}
+ lescolonnes <- c("ACTION","CENTRE","BAGUE","DATE","HEURE", "ESPECE","SEXE","AGE","MEMO SESSION","MEMO","FS","HS","DS","NF","CS","PI","PC","LP","LT","MA","ES","MU","COND REPR","CIRC REPR","PAYS","DEPT","LOCALITE","LIEUDIT","LAT","LON","THEME SESSION","THEME","BAGUEUR","BG","AD", "CA", "SG", "SC")
+```
+
+
+
+```{r data_crbpo}
+
+fichier_crbpo <- "data_raw/data_CRBPO_RL_2024-02-05.xlsx"
+d_crbpo <- read_xlsx(fichier_crbpo, sheet = "Extrait")
+setDT(d_crbpo)
+#cat(nrow(d_crbpo),"lignes\n")
+
+d_crbpo[,SC := str_split_fixed(MEMO, "SC: ", 2)[,2]]
+d_crbpo <- d_crbpo[,lescolonnes,with = FALSE]
+setnames(d_crbpo,colnames(d_crbpo),gsub(" ","_",colnames(d_crbpo)))
+d_crbpo[,BAGUE := gsub("\\.","",BAGUE)]
+
+```
+
+
+
+```{r les_fichier_saisi}
+
+#les_fichiers <- choose.files()
+ les_fichiers <- dir("saisie/")
+    les_fichiers <- les_fichiers[grep("xlsx",les_fichiers)]
+
+  
+    if(length(les_fichiers) == 0) {
+      print("0 fichier à importer !!")
+    } else {
+        les_fichiers <- paste0("saisie/",les_fichiers)
+        t_fichiers <- data.frame(nom = les_fichiers)
+        my_kable_print(t_fichiers,scroll = FALSE)
+    }
+
+```
+
+
+
+```{r importation,  eval=TRUE}
+   if(length(les_fichiers) != 0) {
+    d <- NULL
+    for(i in 1:length(les_fichiers)){
+        file_name <- les_fichiers[i]
+      #  cat(file_name,"\n")
+        di <- read_xlsx(file_name, sheet = "SAISIE")
+        di <- di[,lescolonnes]
+       # cat(nrow(di),"lignes\n")
+        d <- rbind(d,di)
+    }
+
+    setDT(d)
+    setnames(d,colnames(d),gsub(" ","_",colnames(d)))
+    d[,HEURE := format(as.POSIXct(HEURE),"%H:%M:%S")]
+       d[,DS := format(as.POSIXct(DS),"%H:%M:%S")]
+          d[,HS := format(as.POSIXct(HS),"%H:%M:%S")]
+          
+    }
+```   
+
+
+   
+```{r new_data}
+
+d_new <- d[!(DATE %in% d_crbpo[,DATE])]
+  # cat(nrow(d_new),"lignes\n")
+
+   d_all <- rbind(d_crbpo,d_new)
+   #  cat(nrow(d_all),"lignes\n")
+   
+    
+```
+    

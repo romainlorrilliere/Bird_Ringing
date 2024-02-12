@@ -48,7 +48,7 @@ d_crbpo[,BAGUE := gsub("\\.","",BAGUE)]
 
 
 
-```{r les_fichier}
+```{r les_fichier_saisi}
 
 #les_fichiers <- choose.files()
  les_fichiers <- dir("saisie/")
